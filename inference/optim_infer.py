@@ -63,6 +63,8 @@ class OptimizerInference(BaseInference):
 
     def __init__(self, opts, decoder=None):
         super(OptimizerInference, self).__init__()
+        opts.resolution = opts.resolution or 256
+        print("Running Inference with Options", opts)
         self.opts = opts
         self.device = 'cuda'
         self.opts.device = self.device
