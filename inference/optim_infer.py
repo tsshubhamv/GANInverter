@@ -78,7 +78,7 @@ class OptimizerInference(BaseInference):
         if decoder is not None:
             self.decoder = decoder
         else:
-            self.decoder = Generator(opts.resolution, 512, 8).to(self.device)
+            self.decoder = Generator(opts.resolution, opts.resolution, 8).to(self.device)
             self.decoder.eval()
             if checkpoint is not None:
                 self.decoder.load_state_dict(checkpoint['decoder'], strict=True)
