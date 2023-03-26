@@ -2,3 +2,4 @@
 experiments/
 latent_fid_results/
 data/
+__pycache__/
