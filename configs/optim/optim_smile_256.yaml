@@ -1,4 +1,5 @@
 exp_dir: "experiments/optim/smile_256"
+save_code: True
 
 # Data
 test_dataset_path: 'data/smile_256/'
