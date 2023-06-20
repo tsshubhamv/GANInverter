@@ -179,7 +179,7 @@ class OptimizerInference(BaseInference):
     def edit(self, images, images_resize, image_path, editor):
         images, codes, _ = self.inverse(images, images_resize, image_path)
         CORRECT_TEETH = os.environ.get("CORRECT_TEETH", False)
-        if CORRECT_TEETH == True:
+        if CORRECT_TEETH:
             self.correct(images, images_resize, image_path, self.scorenet)
         edit_codes = editor.edit_code(codes)
         edit_images = self.generate(edit_codes)
