@@ -173,7 +173,7 @@ class OptimizerInference(BaseInference):
         else:
             return images, result_latent, None
 
-    def scorenet(image):
+    def scorenet(self, image):
         return 1
 
     def edit(self, images, images_resize, image_path, editor):
