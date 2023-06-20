@@ -213,7 +213,8 @@ class OptimizerInference(BaseInference):
                 optimizer.zero_grad()
 
                 # Compute the gradients
-                loss.backward()
+                # loss.backward()
+                print("loss score", loss)
 
                 # Update the direction v
                 optimizer.step()
