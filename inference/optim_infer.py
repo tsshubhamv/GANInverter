@@ -221,7 +221,7 @@ class OptimizerInference(BaseInference):
                 optimizer.step()
 
             print(v, ps)
-            image = self.decoder([torch.cat((po, ps + beta * v, pa), dim=0)], input_is_latent=True)
+            image, _ = self.decoder([torch.cat((po, ps + beta * v, pa), dim=0)], input_is_latent=True)
             print(image.shape)
             image = tensor2im(image)
             image.save(os.path.join(f'{i}.jpg'))
