@@ -177,13 +177,15 @@ class OptimizerInference(BaseInference):
         return 1
 
     def edit(self, images, images_resize, image_path, editor):
-        images, codes, _ = self.inverse(images, images_resize, image_path)
         CORRECT_TEETH = os.environ.get("CORRECT_TEETH", False)
         if CORRECT_TEETH:
             self.correct(images, images_resize, image_path, self.scorenet)
-        edit_codes = editor.edit_code(codes)
-        edit_images = self.generate(edit_codes)
-        return images, edit_images, codes, edit_codes, None
+            return None
+        else:
+            images, codes, _ = self.inverse(images, images_resize, image_path)
+            edit_codes = editor.edit_code(codes)
+            edit_images = self.generate(edit_codes)
+            return images, edit_images, codes, edit_codes, None
 
     def correct(self, images, images_resize, image_path, S):
         images, codes, _ = self.inverse(images, images_resize, image_path)
@@ -196,7 +198,7 @@ class OptimizerInference(BaseInference):
 
             optimizer = optim.Adam([v], lr=0.1)
             # Perform the optimization
-            po, ps, pa = torch.split(codes.detach().clone(), [4, 5, 5], dim=0)
+            po, ps, pa = torch.split(codes[i].detach().clone(), [4, 5, 5], dim=0)
             for i in range(edit_step):
                 # Compute the unalignment score using the pretrained ScoreNet S
                 unalignment_score = S(
