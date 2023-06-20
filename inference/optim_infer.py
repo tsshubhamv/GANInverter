@@ -36,10 +36,9 @@ def noise_regularize(noises):
 
         while True:
             loss = (
-                    loss
-                    + (noise * torch.roll(noise, shifts=1, dims=3)).mean().pow(2)
-                    + (noise * torch.roll(noise, shifts=1, dims=2)).mean().pow(2)
-            )
+                loss +
+                (noise * torch.roll(noise, shifts=1, dims=3)).mean().pow(2) +
+                (noise * torch.roll(noise, shifts=1, dims=2)).mean().pow(2))
 
             if size <= 8:
                 break
@@ -60,7 +59,6 @@ def noise_normalize_(noises):
 
 
 class OptimizerInference(BaseInference):
-
     def __init__(self, opts, decoder=None):
         super(OptimizerInference, self).__init__()
         opts.resolution = opts.resolution or 256
@@ -85,11 +83,14 @@ class OptimizerInference(BaseInference):
                 print(x, b[x].shape)
             self.decoder.eval()
             if checkpoint is not None:
-                self.decoder.load_state_dict(checkpoint['decoder'], strict=True)
+                self.decoder.load_state_dict(checkpoint['decoder'],
+                                             strict=True)
             else:
-                decoder_checkpoint = torch.load(opts.stylegan_weights, map_location='cpu')
+                decoder_checkpoint = torch.load(opts.stylegan_weights,
+                                                map_location='cpu')
                 self.decoder.load_state_dict(decoder_checkpoint['g_ema'])
-                self.latent_avg = decoder_checkpoint['latent_avg'].to(self.device) if checkpoint is None else None
+                self.latent_avg = decoder_checkpoint['latent_avg'].to(
+                    self.device) if checkpoint is None else None
         self.latent_std = None
 
         # initial loss
@@ -99,12 +100,15 @@ class OptimizerInference(BaseInference):
         if self.latent_std is None:
             n_mean_latent = 10000
             with torch.no_grad():
-                noise_sample = torch.randn(n_mean_latent, 512, device=self.device)
+                noise_sample = torch.randn(n_mean_latent,
+                                           512,
+                                           device=self.device)
                 latent_out = self.decoder.style(noise_sample)
                 latent_mean = latent_out.mean(0)
                 if self.latent_avg is None:
                     self.latent_avg = latent_mean
-                self.latent_std = ((latent_out - latent_mean).pow(2).sum() / n_mean_latent) ** 0.5
+                self.latent_std = ((latent_out - latent_mean).pow(2).sum() /
+                                   n_mean_latent)**0.5
 
         latent_std = self.latent_std.detach().clone()
         latent_mean = self.latent_avg.detach().clone()
@@ -112,12 +116,14 @@ class OptimizerInference(BaseInference):
         noises_single = self.decoder.make_noise()
         noises = []
         for noise in noises_single:
-            noises.append(noise.repeat(images_resize.shape[0], 1, 1, 1).normal_())
+            noises.append(
+                noise.repeat(images_resize.shape[0], 1, 1, 1).normal_())
 
         latent_in = latent_mean.unsqueeze(0).repeat(images_resize.shape[0], 1)
 
         if self.opts.w_plus:
-            latent_in = latent_in.unsqueeze(1).repeat(1, self.decoder.n_latent, 1)
+            latent_in = latent_in.unsqueeze(1).repeat(1, self.decoder.n_latent,
+                                                      1)
 
         latent_in.requires_grad = True
         for noise in noises:
@@ -129,15 +135,21 @@ class OptimizerInference(BaseInference):
             t = i / self.opts.optim_step
             lr = get_lr(t, self.opts.lr)
             optimizer.param_groups[0]["lr"] = lr
-            noise_strength = latent_std * self.opts.noise * max(0, 1 - t / self.opts.noise_ramp) ** 2
+            noise_strength = latent_std * self.opts.noise * max(
+                0, 1 - t / self.opts.noise_ramp)**2
             latent_n = latent_noise(latent_in, noise_strength.item())
 
-            img_gen, _ = self.decoder([latent_n], input_is_latent=True, noise=noises)
+            img_gen, _ = self.decoder([latent_n],
+                                      input_is_latent=True,
+                                      noise=noises)
 
             if i == (self.opts.optim_step - 1) and return_lpips:
                 delta = self.lpips_loss(img_gen, images, keep_res=True)
 
-            img_gen = F.interpolate(torch.clamp(img_gen, -1., 1.), size=(images_resize.shape[2], images_resize.shape[3]), mode='bilinear')
+            img_gen = F.interpolate(torch.clamp(img_gen, -1., 1.),
+                                    size=(images_resize.shape[2],
+                                          images_resize.shape[3]),
+                                    mode='bilinear')
 
             p_loss = self.lpips_loss(img_gen, images_resize)
             n_loss = noise_regularize(noises)
@@ -151,7 +163,9 @@ class OptimizerInference(BaseInference):
 
             noise_normalize_(noises)
 
-        images, result_latent = self.decoder([latent_in.detach().clone()], input_is_latent=True, noise=noises,
+        images, result_latent = self.decoder([latent_in.detach().clone()],
+                                             input_is_latent=True,
+                                             noise=noises,
                                              return_latents=True)
 
         if return_lpips:
@@ -159,8 +173,48 @@ class OptimizerInference(BaseInference):
         else:
             return images, result_latent, None
 
+    def scorenet(image):
+        return 1
+
     def edit(self, images, images_resize, image_path, editor):
         images, codes, _ = self.inverse(images, images_resize, image_path)
+        CORRECT_TEETH = os.environ.get("CORRECT_TEETH", False)
+        if CORRECT_TEETH == True:
+            self.correct(images, images_resize, image_path, self.scorenet)
         edit_codes = editor.edit_code(codes)
         edit_images = self.generate(edit_codes)
         return images, edit_images, codes, edit_codes, None
+
+    def correct(self, images, images_resize, image_path, S):
+        images, codes, _ = self.inverse(images, images_resize, image_path)
+        edit_step = 200
+        new_latent_codes = []
+        for i in range(len(images)):
+            v = torch.zeros(1, 512)
+            beta = 3  # intial scorenet score
+
+            optimizer = optim.Adam([v], lr=0.1)
+            # Perform the optimization
+            po, ps, pa = torch.split(codes.detach().clone(), [4, 5, 5], dim=0)
+            for i in range(edit_step):
+                # Compute the unalignment score using the pretrained ScoreNet S
+                unalignment_score = S(
+                    self.generate(torch.cat((po, ps + beta * v, pa), dim=1)))
+
+                print("unalignment_score", unalignment_score)
+                # Compute the loss as the negative of the unalignment score
+                loss = -unalignment_score
+
+                # Zero the gradients
+                optimizer.zero_grad()
+
+                # Compute the gradients
+                loss.backward()
+
+                # Update the direction v
+                optimizer.step()
+
+            print(v, ps)
+
+            image = self.generate([torch.cat((po, ps + beta * v, pa), dim=1)])
+            print(image.shape)
