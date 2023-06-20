@@ -8,6 +8,7 @@ from models.stylegan2.model import Generator
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
+from utils.common import tensor2im
 from utils.train_utils import load_train_checkpoint, requires_grad
 from inference.inference import BaseInference
 import cv2
@@ -190,7 +191,7 @@ class OptimizerInference(BaseInference):
     def correct(self, images, images_resize, image_path, S):
         images, codes, _ = self.inverse(images, images_resize, image_path)
         edit_step = 200
-        new_latent_codes = []
+        new_latent_codes = torch.tensor([])
         print("Starting to correct teeth")
         for i in range(len(images)):
             v = torch.zeros(1, 512, device=self.device)
@@ -220,6 +221,7 @@ class OptimizerInference(BaseInference):
                 optimizer.step()
 
             print(v, ps)
-
-            image = self.decoder([torch.cat((po, ps + beta * v, pa), dim=1)], input_is_latent=True)
+            image = self.decoder([torch.cat((po, ps + beta * v, pa), dim=0)], input_is_latent=True)
             print(image.shape)
+            image = tensor2im(image)
+            image.save(os.path.join(f'{i}.jpg'))
