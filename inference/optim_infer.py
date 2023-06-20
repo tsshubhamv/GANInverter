@@ -189,6 +189,7 @@ class OptimizerInference(BaseInference):
         images, codes, _ = self.inverse(images, images_resize, image_path)
         edit_step = 200
         new_latent_codes = []
+        print("Starting to correct teeth")
         for i in range(len(images)):
             v = torch.zeros(1, 512)
             beta = 3  # intial scorenet score
