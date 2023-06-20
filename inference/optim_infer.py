@@ -193,7 +193,7 @@ class OptimizerInference(BaseInference):
         new_latent_codes = []
         print("Starting to correct teeth")
         for i in range(len(images)):
-            v = torch.zeros(1, 512)
+            v = torch.zeros(1, 512, device=self.device)
             beta = 3  # intial scorenet score
 
             optimizer = optim.Adam([v], lr=0.1)
