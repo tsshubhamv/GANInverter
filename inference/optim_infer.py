@@ -202,7 +202,7 @@ class OptimizerInference(BaseInference):
             for i in range(edit_step):
                 # Compute the unalignment score using the pretrained ScoreNet S
                 unalignment_score = S(
-                    self.generate(torch.cat((po, ps + beta * v, pa), dim=1)))
+                    self.generate(torch.cat((po, ps + beta * v, pa), dim=0)))
 
                 print("unalignment_score", unalignment_score)
                 # Compute the loss as the negative of the unalignment score
