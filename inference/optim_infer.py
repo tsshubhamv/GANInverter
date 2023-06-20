@@ -201,7 +201,8 @@ class OptimizerInference(BaseInference):
             po, ps, pa = torch.split(codes[i].detach().clone(), [4, 5, 5], dim=0)
             for i in range(edit_step):
                 # Compute the unalignment score using the pretrained ScoreNet S
-                inter_image, _ = self.generate(torch.cat((po, ps + beta * v, pa), dim=0)) # type: ignore
+                inter_image = self.generate(torch.cat((po, ps + beta * v, pa), dim=0)) # type: ignore
+                print("inter_image", inter_image.shape)
                 unalignment_score = S(inter_image)
 
                 print("unalignment_score", unalignment_score)
